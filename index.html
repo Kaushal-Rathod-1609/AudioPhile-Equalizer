@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audiophile EQ | Premium Edition</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            /* Hyper-Transparent Glass Variables */
+            --glass-bg: rgba(10, 20, 45, 0.25); /* Very see-through blue tint */
+            --glass-border: rgba(100, 200, 255, 0.15); /* Thin, bright cyan border */
+            --glass-shine: rgba(255, 255, 255, 0.05);
+            --neon-blue: #60a5fa;
+            --neon-cyan: #22d3ee;
+        }
+
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #000205; /* Almost black base */
+            color: #e0f2fe; /* Very light blue text */
+            overflow-x: hidden; 
+            cursor: default;
+        }
+        
+        h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* --- 3D CANVAS (Background) --- */
+        #bgCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 30%, #0f172a 0%, #000000 100%);
+        }
+
+        /* --- ULTRA GLASS UI --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(150%); /* Heavy blur */
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.3), 
+                inset 0 0 0 1px var(--glass-shine); /* Inner light rim */
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            border-color: rgba(100, 200, 255, 0.3);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- LIQUID GLASS BUTTONS --- */
+        .btn-glass {
+            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* The "Shine" Effect */
+        .btn-glass::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 200%; height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: skewX(-20deg);
+            transition: left 0.5s;
+        }
+
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(100, 200, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); /* Blue Glow */
+        }
+
+        .btn-glass:hover::after {
+            left: 100%; /* Sweep shine across */
+        }
+        
+        .btn-primary-glass {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(6, 182, 212, 0.4)); /* Very transparent gradient */
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+        }
+        .btn-primary-glass:hover {
+             background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(6, 182, 212, 0.6));
+             box-shadow: 0 0 50px rgba(59, 130, 246, 0.4);
+             transform: scale(1.02);
+        }
+
+        /* --- ANIMATIONS --- */
+        .scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+
+        .dropdown-enter { opacity: 0; transform: translateY(-10px) scale(0.95); pointer-events: none; visibility: hidden; }
+        .dropdown-active { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; visibility: visible; }
+        .transition-spring { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* --- SCROLLBAR --- */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--neon-blue); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #02040a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-blue); }
+
+        /* --- UTILS --- */
+        .text-gradient { 
+            background: linear-gradient(135deg, #93c5fd 0%, #67e8f9 100%); /* Lighter blue/cyan gradient */
+            -webkit-background-clip: text; 
+            background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+        
+        .music-bar { width: 4px; background: var(--neon-cyan); border-radius: 2px; animation: equalizer 1s infinite ease-in-out; }
+        @keyframes equalizer { 0%, 100% { height: 6px; } 50% { height: 18px; } }
+        
+        .pulse-blue { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); animation: pulse-blue-anim 2s infinite; }
+        @keyframes pulse-blue-anim { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); } 70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500/30">
+
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Navbar (Z-Index 1000) -->
+    <nav class="border-b border-white/5 bg-black/10 backdrop-blur-md sticky top-0 z-[1000] transition-all duration-300">
+        <div class="max-w-[1400px] mx-auto px-6">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand -->
+                <div class="flex items-center gap-4 group cursor-pointer select-none" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+                    <div class="relative w-10 h-10 flex items-center justify-center bg-blue-500/10 rounded-xl border border-blue-500/20 group-hover:border-blue-400/50 transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                        <i class="fa-solid fa-wave-square text-cyan-400 text-xl"></i>
+                    </div>
+                    <span class="font-bold text-2xl tracking-tight text-white brand-font">Audio<span class="text-cyan-400">phile</span></span>
+                </div>
+
+                <!-- Tools -->
+                <div class="flex items-center gap-3">
+                    <button onclick="openSoundCheck()" class="hidden md:flex btn-glass px-5 py-2.5 text-blue-200 text-xs font-bold rounded-full items-center gap-2">
+                        <i class="fa-solid fa-music text-blue-400"></i> Sound Check
+                    </button>
+                    <button onclick="openHearingTest()" class="hidden md:flex btn-glass px-5 py-2.5 text-blue-200 text-xs font-bold rounded-full items-center gap-2">
+                        <i class="fa-solid fa-ear-listen text-purple-400"></i> Golden Ears
+                    </button>
+                    <button onclick="openAddModal()" class="hidden md:flex btn-glass px-5 py-2.5 text-blue-200 text-xs font-bold rounded-full items-center gap-2">
+                        <i class="fa-solid fa-plus text-cyan-400"></i> Add Custom
+                    </button>
+                    
+                    <div class="h-8 w-px bg-white/10 mx-2"></div>
+                    
+                    <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden text-gray-400 hover:text-white transition"><i class="fa-solid fa-database"></i></button>
+                    <button onclick="clearConfig()" class="w-10 h-10 rounded-full btn-glass flex items-center justify-center text-gray-400 hover:text-cyan-400">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-6 py-20 relative z-10">
+        
+        <!-- Hero Search (Z-50) -->
+        <div class="max-w-3xl mx-auto mb-24 text-center scroll-reveal visible relative z-50">
+            <div class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-blue-500/5 border border-blue-500/20 text-cyan-300 text-[10px] font-bold uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(59,130,246,0.1)] backdrop-blur-md">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> AI Powered Audio Engineering
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-8 text-white leading-tight drop-shadow-2xl">
+                Pure Sound.<br><span class="text-gradient">Perfectly Tuned.</span>
+            </h1>
+            
+            <!-- Search Container -->
+            <div class="relative group max-w-2xl mx-auto mt-12">
+                <!-- Glow Effect -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                
+                <!-- Ultra Transparent Search Bar -->
+                <div class="relative flex items-center bg-[#0a1120]/40 backdrop-blur-xl rounded-2xl p-2 border border-white/10 shadow-2xl transition-all group-hover:border-white/20 group-hover:bg-[#0a1120]/60">
+                    <i class="fa-solid fa-search text-gray-400 ml-4 text-xl"></i>
+                    <input type="text" id="searchInput" autocomplete="off" placeholder="Search ANY headphones (e.g. Boult Fluid X, Sony XM5)..." 
+                           class="w-full bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 px-5 py-4 outline-none h-16 text-lg font-medium">
+                </div>
+                
+                <!-- Results Dropdown (Solid for readability) -->
+                <div id="searchResults" class="hidden absolute top-full left-0 w-full bg-[#0a1120]/95 backdrop-blur-3xl mt-4 rounded-2xl shadow-2xl border border-white/10 max-h-80 overflow-y-auto z-[999] text-left divide-y divide-white/5 scroll-smooth p-2"></div>
+            </div>
+
+            <!-- Connect DAC -->
+            <button onclick="connectUSB()" class="mt-10 px-8 py-4 btn-glass rounded-full text-sm font-bold text-white flex items-center justify-center gap-3 mx-auto group">
+                <i class="fa-brands fa-usb text-cyan-400 text-xl group-hover:scale-110 transition-transform"></i>
+                Auto-Detect via USB
+            </button>
+        </div>
+
+        <!-- Versus Bar -->
+        <div id="versusSearchContainer" class="hidden max-w-xl mx-auto mb-16 text-center scroll-reveal">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 mb-4 backdrop-blur-md">
+                <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                <span class="text-orange-400 text-[10px] font-bold tracking-widest uppercase">Comparison Mode</span>
+            </div>
+            <div class="relative flex items-center bg-[#0f131f]/60 border border-orange-500/30 rounded-2xl p-2 shadow-lg backdrop-blur-xl">
+                <i class="fa-solid fa-scale-balanced text-orange-500 ml-4"></i>
+                <input type="text" id="versusInput" autocomplete="off" placeholder="Compare with..." class="w-full bg-transparent border-none focus:ring-0 text-white px-4 py-2 outline-none h-12 text-sm">
+                <button onclick="exitVersusMode()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-gray-500 hover:text-white transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div id="versusResults" class="hidden absolute w-full max-w-xl bg-[#0f131f] mt-2 rounded-xl shadow-2xl border border-orange-900/50 max-h-60 overflow-y-auto z-50 text-left left-0 right-0 mx-auto"></div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-[1400px] mx-auto">
+            
+            <!-- LEFT COLUMN (Data & Graph) -->
+            <div class="lg:col-span-8 space-y-8 scroll-reveal">
+                
+                <!-- HEADER CARD (Z-40) -->
+                <div class="glass-panel p-8 relative overflow-visible z-40 group">
+                    <!-- Ambient Light -->
+                    <div class="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-cyan-500/5 to-transparent rounded-3xl pointer-events-none"></div>
+                    
+                    <div class="relative z-20 flex flex-col md:flex-row justify-between items-start gap-8">
+                        <div class="flex-1 min-w-0">
+                            
+                            <!-- DEVICE TYPE BAR -->
+                            <div class="flex flex-wrap items-center gap-3 mb-4">
+                                <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></span>
+                                    <span class="text-cyan-300 text-[10px] font-bold uppercase tracking-widest">Active Model</span>
+                                </div>
+                                <div id="deviceTypeBadge" class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md hidden">
+                                    <i id="deviceTypeIcon" class="text-gray-400 text-xs"></i>
+                                    <span id="deviceTypeText" class="text-gray-300 text-[10px] font-bold uppercase tracking-wider">Unknown Device</span>
+                                </div>
+                            </div>
+
+                            <h2 id="iemName" class="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight mb-6 truncate drop-shadow-lg" title="">Model Name</h2>
+                            
+                            <!-- Target Selector -->
+                            <div class="relative inline-block text-left">
+                                <button type="button" onclick="toggleTargetMenu()" class="btn-glass group flex items-center justify-between w-64 px-5 py-3.5 rounded-xl">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-cyan-400 text-sm border border-blue-500/20"><i class="fa-solid fa-crosshairs"></i></div>
+                                        <div class="text-left">
+                                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Target Curve</div>
+                                            <div id="targetLabel" class="text-sm font-bold text-white truncate w-36">Harman 2019</div>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-down text-xs text-gray-500 group-hover:text-white transition-colors"></i>
+                                </button>
+                                <div id="targetMenu" class="dropdown-enter absolute top-full left-0 mt-2 w-64 bg-[#0f172a]/95 backdrop-blur-3xl border border-white/10 divide-y divide-white/5 rounded-2xl shadow-2xl ring-1 ring-black/50 z-50 transition-spring overflow-hidden">
+                                    <div class="p-2 space-y-1">
+                                        <button onclick="selectTarget('harman', 'Harman 2019')" class="flex w-full items-center p-3 rounded-xl hover:bg-white/5 group transition">
+                                            <div class="mr-3 p-2 bg-white/5 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition"><i class="fa-solid fa-music"></i></div>
+                                            <div class="text-left"><div class="font-bold text-sm text-gray-200">Harman 2019</div><div class="text-[10px] text-gray-500">Balanced & Fun</div></div>
+                                        </button>
+                                        <button onclick="selectTarget('diffuse', 'Diffuse Field')" class="flex w-full items-center p-3 rounded-xl hover:bg-white/5 group transition">
+                                            <div class="mr-3 p-2 bg-white/5 rounded-lg text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition"><i class="fa-solid fa-wave-square"></i></div>
+                                            <div class="text-left"><div class="font-bold text-sm text-gray-200">Diffuse Field</div><div class="text-[10px] text-gray-500">Studio Flat</div></div>
+                                        </button>
+                                        <button onclick="selectTarget('crinacle', 'Crinacle Neutral')" class="flex w-full items-center p-3 rounded-xl hover:bg-white/5 group transition">
+                                            <div class="mr-3 p-2 bg-white/5 rounded-lg text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition"><i class="fa-solid fa-sliders"></i></div>
+                                            <div class="text-left"><div class="font-bold text-sm text-gray-200">Crinacle Neutral</div><div class="text-[10px] text-gray-500">Technical</div></div>
+                                        </button>
+                                        <button onclick="selectTarget('etymotic', 'Etymotic Target')" class="flex w-full items-center p-3 rounded-xl hover:bg-white/5 group transition">
+                                            <div class="mr-3 p-2 bg-white/5 rounded-lg text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition"><i class="fa-solid fa-bullseye"></i></div>
+                                            <div class="text-left"><div class="font-bold text-sm text-gray-200">Etymotic</div><div class="text-[10px] text-gray-500">Deep Accuracy</div></div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tech Specs -->
+                        <div class="flex flex-col gap-6 border-l border-white/10 pl-8 min-w-[180px] py-2">
+                            <div><div class="text-[10px] text-cyan-400 font-bold uppercase mb-1 tracking-wider">Impedance</div><div id="specImpedance" class="text-xl font-mono text-white">--</div></div>
+                            <div><div class="text-[10px] text-cyan-400 font-bold uppercase mb-1 tracking-wider">Sensitivity</div><div id="specSens" class="text-xl font-mono text-white">--</div></div>
+                            <div><div class="text-[10px] text-cyan-400 font-bold uppercase mb-1 tracking-wider">Driver</div><div id="specDriver" class="text-sm font-bold text-gray-300">--</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRAPH CARD (Z-30) -->
+                <div class="glass-panel p-6 relative z-30">
+                    <div class="flex justify-between items-center mb-8 px-2">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-blue-500/10 rounded-xl text-cyan-400 border border-blue-500/20"><i class="fa-solid fa-chart-line"></i></div>
+                            <h3 class="font-bold text-xl text-white">Response Curve</h3>
+                        </div>
+                        <div class="flex items-center gap-4 bg-black/20 px-5 py-2.5 rounded-xl border border-white/5 shadow-inner backdrop-blur-sm">
+                            <label class="flex items-center gap-3 cursor-pointer group select-none">
+                                <span class="text-[10px] font-bold text-gray-400 group-hover:text-white transition tracking-wider">TARGET</span>
+                                <div class="relative">
+                                    <input type="checkbox" id="targetToggle" class="sr-only peer" onchange="updateChart(currentIEM.filters)">
+                                    <div class="w-10 h-6 bg-gray-700/50 rounded-full peer peer-checked:bg-cyan-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all relative border border-white/10"></div>
+                                </div>
+                            </label>
+                            <div class="w-px h-5 bg-white/10"></div>
+                            <button onclick="enableVersusMode()" class="text-xs font-bold text-gray-400 hover:text-orange-400 transition flex items-center gap-2"><i class="fa-solid fa-scale-balanced"></i> Compare</button>
+                            <div class="w-px h-5 bg-white/10"></div>
+                            <div class="text-xs text-gray-400 font-mono">Preamp: <span id="preampGain" class="text-cyan-400 font-bold">-0.0 dB</span></div>
+                        </div>
+                    </div>
+                    <div class="relative h-96 w-full">
+                        <canvas id="eqChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- AI TROUBLESHOOTING (Z-20) -->
+                <div class="glass-panel p-8 relative overflow-hidden z-20">
+                    <!-- Subtle glow -->
+                    <div class="absolute -left-10 -bottom-10 w-64 h-64 bg-cyan-600/5 blur-[80px] rounded-full pointer-events-none"></div>
+                    
+                    <div class="flex items-center gap-4 mb-8 relative z-10">
+                        <div class="p-3 bg-blue-500/10 rounded-xl text-cyan-400 border border-blue-500/20"><i class="fa-solid fa-wand-magic-sparkles text-xl"></i></div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Smart Refinement</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">AI-powered tuning adjustments</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                        <!-- Analysis -->
+                        <div class="space-y-4">
+                            <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sonic Signature</h4>
+                            <div id="aiAnalysisResult" class="text-sm text-gray-300 leading-relaxed bg-black/20 p-6 rounded-2xl border border-white/5 min-h-[120px] shadow-inner backdrop-blur-sm">Connect Gemini Key to analyze sound...</div>
+                            <button onclick="analyzeSound()" id="analyzeBtn" class="w-full py-3 btn-glass rounded-xl text-xs font-bold text-white flex justify-center gap-2 hover:border-cyan-500/50"><i class="fa-solid fa-microchip"></i> Analyze Signature</button>
+                        </div>
+                        <!-- Fixes -->
+                        <div class="space-y-4">
+                            <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Quick Tweaks</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="setTunerPrompt('Reduce sibilance and harshness')" class="p-4 btn-glass rounded-xl text-xs font-bold text-gray-300 hover:text-red-300 transition text-left flex items-center gap-3 hover:border-red-500/30"><i class="fa-solid fa-scissors text-red-400"></i> De-Harsh</button>
+                                <button onclick="setTunerPrompt('Fix muddy bass')" class="p-4 btn-glass rounded-xl text-xs font-bold text-gray-300 hover:text-orange-300 transition text-left flex items-center gap-3 hover:border-orange-500/30"><i class="fa-solid fa-eraser text-orange-400"></i> De-Mud</button>
+                                <button onclick="setTunerPrompt('Bring vocals forward')" class="p-4 btn-glass rounded-xl text-xs font-bold text-gray-300 hover:text-blue-300 transition text-left flex items-center gap-3 hover:border-blue-500/30"><i class="fa-solid fa-microphone text-blue-400"></i> Vocals</button>
+                                <button onclick="setTunerPrompt('Increase sub-bass rumble')" class="p-4 btn-glass rounded-xl text-xs font-bold text-gray-300 hover:text-cyan-300 transition text-left flex items-center gap-3 hover:border-cyan-500/30"><i class="fa-solid fa-drum text-cyan-400"></i> Bass</button>
+                            </div>
+                            <div class="relative mt-2">
+                                <input id="aiTunerPrompt" type="text" placeholder="Or type specific goal..." class="w-full bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-xs text-white focus:border-cyan-500 outline-none backdrop-blur-sm">
+                                <button onclick="generateSmartEQ()" id="tuneBtn" class="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition shadow-lg">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN (Export & Tools) -->
+            <div class="lg:col-span-4 space-y-6 scroll-reveal" style="animation-delay: 0.1s;">
+                <div class="glass-panel p-6 sticky top-24">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2.5 bg-white/5 rounded-lg text-gray-300 border border-white/5"><i class="fa-solid fa-file-export"></i></div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wide">Export Config</h3>
+                    </div>
+
+                    <!-- Application Selector -->
+                    <div class="space-y-2 mb-6">
+                        <div class="relative">
+                            <button type="button" onclick="toggleExportMenu()" class="btn-glass flex items-center justify-between w-full rounded-xl p-4 group">
+                                <div class="flex items-center gap-3">
+                                    <div id="exportIcon" class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-cyan-400 group-hover:text-white group-hover:bg-cyan-500 transition-all border border-blue-500/20">
+                                        <i class="fa-solid fa-sliders"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-[10px] text-gray-500 font-bold uppercase">Target App</div>
+                                        <span id="exportLabel" class="font-bold text-sm">Parametric EQ</span>
+                                    </div>
+                                </div>
+                                <i class="fa-solid fa-chevron-down text-xs text-gray-500 group-hover:text-white transition-colors"></i>
+                            </button>
+
+                            <!-- Export Menu -->
+                            <div id="exportMenu" class="dropdown-enter absolute top-full left-0 mt-2 w-full bg-[#0f172a]/95 backdrop-blur-3xl border border-white/10 divide-y divide-white/5 rounded-xl shadow-2xl ring-1 ring-black z-50 transition-spring max-h-96 overflow-y-auto custom-scrollbar">
+                                <div class="p-1.5 space-y-1">
+                                    <button onclick="selectExportProfile('parametric', 'Parametric EQ', 'fa-sliders')" class="w-full text-left px-3 py-3 hover:bg-white/5 rounded-lg group flex items-center gap-3 transition">
+                                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-blue-400"><i class="fa-solid fa-sliders"></i></div>
+                                        <div><div class="text-sm font-bold text-gray-200">Parametric EQ</div><div class="text-[10px] text-gray-500">Universal / Roon / APO</div></div>
+                                    </button>
+                                    <button onclick="selectExportProfile('wavelet_import', 'Wavelet (AutoEq)', 'fa-file-code')" class="w-full text-left px-3 py-3 hover:bg-white/5 rounded-lg group flex items-center gap-3 transition">
+                                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-blue-400"><i class="fa-solid fa-file-code"></i></div>
+                                        <div><div class="text-sm font-bold text-gray-200">Wavelet (Import)</div><div class="text-[10px] text-gray-500">Best for Android</div></div>
+                                    </button>
+                                    <button onclick="selectExportProfile('wavelet_manual', 'Wavelet (Sliders)', 'fa-sliders-h')" class="w-full text-left px-3 py-3 hover:bg-white/5 rounded-lg group flex items-center gap-3 transition">
+                                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-blue-400"><i class="fa-solid fa-sliders-h"></i></div>
+                                        <div><div class="text-sm font-bold text-gray-200">Wavelet (Manual)</div><div class="text-[10px] text-gray-500">9-Band Graphic</div></div>
+                                    </button>
+                                    <button onclick="selectExportProfile('sony', 'Sony Headphones', 'fa-headphones')" class="w-full text-left px-3 py-3 hover:bg-white/5 rounded-lg group flex items-center gap-3 transition">
+                                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-blue-400"><i class="fa-solid fa-headphones"></i></div>
+                                        <div><div class="text-sm font-bold text-gray-200">Sony Headphones</div><div class="text-[10px] text-gray-500">5-Band Graphic</div></div>
+                                    </button>
+                                    <button onclick="selectExportProfile('10_band', '10-Band Graphic', 'fa-list-ol')" class="w-full text-left px-3 py-3 hover:bg-white/5 rounded-lg group flex items-center gap-3 transition">
+                                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:text-blue-400"><i class="fa-solid fa-list-ol"></i></div>
+                                        <div><div class="text-sm font-bold text-gray-200">Standard 10-Band</div><div class="text-[10px] text-gray-500">Generic EQ</div></div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crossfeed -->
+                    <div class="flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/5 mb-8 backdrop-blur-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400"><i class="fa-solid fa-headphones-simple"></i></div>
+                            <div><div class="text-sm font-bold text-gray-200">Crossfeed</div><div class="text-[10px] text-gray-500">Speaker Simulation</div></div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="crossfeedToggle" class="sr-only peer">
+                            <div class="w-10 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500 relative"></div>
+                        </label>
+                    </div>
+
+                    <!-- Download Action -->
+                    <button onclick="downloadConfig()" class="w-full btn-primary-glass text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-3 mb-8 text-sm uppercase tracking-wide">
+                        <i class="fa-solid fa-download"></i> Download Configuration
+                    </button>
+
+                    <!-- Tools Block -->
+                    <div class="bg-black/20 rounded-2xl p-1.5 border border-white/5 grid grid-cols-2 gap-1.5">
+                        <button onclick="generateQR()" class="py-4 rounded-xl hover:bg-white/5 transition flex flex-col items-center gap-2 group">
+                            <i class="fa-solid fa-qrcode text-xl text-gray-500 group-hover:text-white transition"></i>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Mobile QR</span>
+                        </button>
+                        <button onclick="connectUSB()" class="py-4 rounded-xl hover:bg-white/5 transition flex flex-col items-center gap-2 group">
+                            <i class="fa-brands fa-usb text-xl text-gray-500 group-hover:text-white transition"></i>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Connect DAC</span>
+                        </button>
+                    </div>
+
+                    <!-- Filter Table (NEW UI) -->
+                    <div class="mt-8">
+                         <div class="flex justify-between items-center mb-3 px-2">
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Active Filters</span>
+                            <span class="text-[10px] font-mono text-cyan-400 bg-blue-500/10 px-2 py-0.5 rounded" id="viewCount">0</span>
+                         </div>
+                         <div class="bg-[#080a10]/60 rounded-xl border border-white/5 overflow-hidden backdrop-blur-sm">
+                             <div class="overflow-x-auto max-h-[250px] p-2 custom-scrollbar" id="dataContainer"></div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALS -->
+        <!-- ADD CUSTOM -->
+        <div id="addModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xl z-[100] flex items-center justify-center p-4 fade-scale-in" onclick="closeOnOutsideClick(event, 'addModal')"><div class="glass-panel max-w-2xl w-full p-8" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-8"><h2 class="text-2xl font-bold text-white">Add Custom IEM</h2><button onclick="closeAddModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition"><i class="fa-solid fa-times text-sm"></i></button></div><div class="flex bg-black/40 p-1 rounded-xl mb-6"><button onclick="switchAddTab('manual')" id="tabManual" class="flex-1 py-2 rounded-lg text-sm font-bold text-black bg-white shadow-lg transition-all">Manual</button><button onclick="switchAddTab('vision')" id="tabVision" class="flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all">Vision AI 📸</button></div><div id="manualInputSection"><div class="space-y-4"><input type="text" id="customName" placeholder="IEM Name" class="w-full bg-black/30 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-cyan-500 font-bold placeholder-gray-500"><textarea id="customPaste" rows="6" placeholder="Paste AutoEQ text here..." class="w-full bg-black/30 border border-white/10 rounded-xl p-4 text-gray-300 font-mono text-xs outline-none focus:border-cyan-500"></textarea><button onclick="parseAndSaveCustom()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-900/20">Save to Database</button></div></div><div id="visionInputSection" class="hidden space-y-6"><div class="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center hover:border-blue-500/50 transition cursor-pointer bg-white/5 group" onclick="document.getElementById('graphUpload').click()"><div class="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400 group-hover:text-blue-400"></i></div><p class="text-white font-bold">Upload Graph Image</p><p class="text-gray-500 text-xs mt-1">Supports PNG, JPG from reviews or boxes</p><input type="file" id="graphUpload" class="hidden" accept="image/*" onchange="handleGraphUpload(this)"></div><div id="visionPreview" class="hidden"><img id="imgPreview" class="h-40 mx-auto rounded-xl mb-4 object-contain border border-white/10 bg-black/50"><button onclick="processGraphImage()" id="visionProcessBtn" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg">Analyze Curve</button></div></div></div></div>
+        
+        <!-- SOUND CHECK -->
+        <div id="soundCheckModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xl z-[95] flex items-center justify-center p-4 fade-scale-in" onclick="closeOnOutsideClick(event, 'soundCheckModal')"><div class="glass-panel max-w-xl w-full p-8" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-6"><div class="flex items-center gap-4"><div class="p-3 bg-blue-500/20 rounded-xl"><i class="fa-solid fa-music text-blue-400 text-xl"></i></div><div><h2 class="text-2xl font-bold text-white">Sound Check</h2><p class="text-xs text-gray-400">Test your EQ with real tracks</p></div></div><button onclick="closeSoundCheck()" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-white text-lg font-bold" title="Close"><i class="fa-solid fa-times"></i></button></div><div class="relative mb-6"><input type="text" id="songSearchInput" placeholder="Search for a track..." class="w-full bg-black/30 border border-white/10 rounded-xl p-4 pl-12 text-white outline-none focus:border-blue-500 transition-colors" onkeypress="if(event.key === 'Enter') searchSong()"><i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i><button onclick="searchSong()" class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold">Search</button></div><div id="songResults" class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto mb-6 custom-scrollbar"></div><div id="playerSection" class="hidden bg-gradient-to-r from-blue-900/20 to-black/40 rounded-2xl p-5 border border-blue-500/30 flex flex-col gap-4"><div class="flex items-center gap-4"><img id="albumArt" src="" class="w-14 h-14 rounded-lg object-cover shadow-lg ring-1 ring-white/10"><div><h3 id="trackName" class="text-white font-bold text-sm truncate w-56">Track Name</h3><p id="artistName" class="text-blue-300 text-xs font-bold">Artist</p></div></div><audio id="audioPreview" crossorigin="anonymous" controls class="w-full h-8 opacity-80 hover:opacity-100 transition-opacity"></audio><div class="flex items-center justify-between border-t border-white/10 pt-4 mt-1"><div class="flex items-center gap-3"><div class="text-xs text-gray-300 font-bold uppercase tracking-wider">EQ Active</div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="eqSimToggle" class="sr-only peer" onchange="toggleWebAudioEQ()"><div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all relative"></div></label></div><div class="flex gap-1 items-end h-5 opacity-60"><div class="music-bar" style="animation-duration: 0.6s;"></div><div class="music-bar" style="animation-duration: 0.8s;"></div><div class="music-bar" style="animation-duration: 0.5s;"></div><div class="music-bar" style="animation-duration: 0.7s;"></div></div></div></div></div></div>
+        
+        <!-- AI FETCH -->
+        <div id="aiFetchModal" class="hidden fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4 fade-scale-in" onclick="closeOnOutsideClick(event, 'aiFetchModal')"><div class="text-center" onclick="event.stopPropagation()"><div class="inline-block p-8 rounded-full bg-blue-500/10 pulse-blue mb-8 border border-blue-500/20"><i class="fa-solid fa-satellite-dish text-6xl text-blue-400"></i></div><h2 class="text-3xl font-bold text-white mb-3">AI Processing...</h2><p id="aiStatusText" class="text-gray-400 text-sm max-w-md">Retrieving data from the audiophile cloud...</p></div></div>
+        
+        <!-- CONFIG/HEARING/QR/ADMIN -->
+        <div id="configModal" class="hidden fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4" onclick="closeOnOutsideClick(event, 'configModal')"><div class="glass-panel max-w-2xl w-full p-8 overflow-y-auto" onclick="event.stopPropagation()"><div class="text-center mb-8"><i class="fa-solid fa-sliders text-blue-500 text-4xl mb-4"></i><h2 class="text-3xl font-bold text-white">System Setup</h2></div><div class="space-y-6"><div><label class="flex items-center gap-2 text-sm font-bold text-orange-400 uppercase"><i class="fa-solid fa-fire"></i> Firebase Config</label><textarea id="configInput" rows="5" class="w-full bg-black/30 border border-gray-700 rounded-lg p-3 text-gray-300 font-mono text-xs outline-none" placeholder='const firebaseConfig = { ... };'></textarea></div><div><label class="flex items-center gap-2 text-sm font-bold text-blue-400 uppercase"><i class="fa-solid fa-wand-magic-sparkles"></i> Gemini Key (Required)</label><input type="text" id="geminiKeyInput" class="w-full bg-black/30 border border-gray-700 rounded-lg p-3 text-gray-300 font-mono text-xs outline-none" placeholder="AIzaSy..."></div><p id="configError" class="text-red-400 bg-red-900/20 border border-red-800 p-3 rounded text-xs hidden"></p><button onclick="saveConfig()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition">Save & Connect</button></div></div></div>
+        <div id="hearingModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-[90] flex items-center justify-center p-4" onclick="closeOnOutsideClick(event, 'hearingModal')"><div class="glass-panel border border-purple-500/30 rounded-3xl max-w-lg w-full p-8 shadow-2xl text-center" onclick="event.stopPropagation()"><i class="fa-solid fa-ear-listen text-5xl text-purple-500 mb-6"></i><h2 class="text-3xl font-bold text-white mb-2">Hearing Calibration</h2><p class="text-gray-400 text-sm mb-10">Lower volume until tone is barely audible.</p><div id="hearingStep" class="mb-10"><div class="text-6xl font-bold text-white mb-6"><span id="testFreq">500</span><span class="text-2xl text-purple-500">Hz</span></div><input type="range" id="testVol" min="0" max="100" value="50" class="w-full accent-purple-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"></div><div class="flex justify-center gap-4"><button onclick="playTestTone()" class="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition"><i class="fa-solid fa-play mr-2"></i> Test</button><button onclick="nextHearingStep()" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg shadow-purple-900/30 transition">Next Freq</button></div><button onclick="closeHearingModal()" class="mt-8 text-xs text-gray-500 hover:text-white">Cancel</button></div></div>
+        <div id="qrModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-[90] flex items-center justify-center p-4" onclick="closeOnOutsideClick(event, 'qrModal')"><div class="bg-white rounded-3xl p-10 text-center max-w-sm shadow-2xl" onclick="event.stopPropagation()"><h3 class="text-black font-bold text-2xl mb-6">Mobile Link</h3><div id="qrcode" class="flex justify-center mb-6"></div><button onclick="document.getElementById('qrModal').classList.add('hidden')" class="text-gray-500 hover:text-black text-sm font-bold">Close</button></div></div>
+        <div id="adminPanel" class="hidden fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4" onclick="closeOnOutsideClick(event, 'adminPanel')"><div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full p-6" onclick="event.stopPropagation()"><h2 class="text-2xl font-bold text-white mb-4">Database Tools</h2><div id="seedStatus" class="mb-4 text-sm font-mono text-emerald-400 h-6"></div><div class="flex gap-4 justify-end"><button onclick="toggleAdminPanel()" class="px-4 py-2 text-gray-400">Close</button><button onclick="seedDatabase()" class="px-6 py-2 bg-emerald-600 text-white rounded-lg font-bold">Seed 50+ IEMs</button></div></div></div>
+
+    </main>
+
+    <!-- LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- 3D BACKGROUND ---
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initParticles(); }
+        function initParticles() {
+            particles = []; const cnt = Math.floor(width/25);
+            for(let i=0; i<cnt; i++) particles.push({x:Math.random()*width, y:Math.random()*height, size:Math.random()*2, speed:Math.random()*0.5+0.1, opacity:Math.random()*0.5});
+        }
+        function animateBG() {
+            ctx.clearRect(0,0,width,height); const sy=window.scrollY;
+            particles.forEach(p => {
+                p.y -= p.speed + (sy*0.001); if(p.y<0) p.y=height;
+                ctx.fillStyle = `rgba(59, 130, 246, ${p.opacity})`; // Blue 500
+                ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+            });
+            ctx.strokeStyle='rgba(139, 92, 246, 0.08)'; // Purple line
+            ctx.beginPath();
+            for(let i=0; i<width; i+=120) { ctx.moveTo(i-(sy*0.4),height); ctx.lineTo(width/2,height/3); } ctx.stroke();
+            requestAnimationFrame(animateBG);
+        }
+        window.addEventListener('resize', resize); resize(); animateBG();
+
+        // --- SCROLL REVEAL FALLBACK ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+        });
+
+        // GLOBAL STATE
+        let db, auth;
+        let currentIEM = null, competitorIEM = null;
+        let allIEMs = [];
+        let eqChart = null;
+        let geminiKey = "";
+        let audioCtx = null, osc = null, gainNode = null; 
+        let webAudioSource = null, filterNodes = []; 
+        let hearingProfile = { 500: 0, 1000: 0, 2000: 0, 4000: 0, 8000: 0 };
+        let hearingStepIndex = 0;
+        const hearingFreqs = [500, 1000, 2000, 4000, 8000];
+        const TARGET_DATA = { 'harman': { name: "Harman", points: [[20,9],[100,5],[1000,0],[3000,9],[10000,-2]] }, 'diffuse': { name: "Diffuse", points: [[20,-1],[100,-1],[1000,0],[3000,12],[10000,2]] }, 'crinacle': { name: "Neutral", points: [[20,6],[100,0],[1000,0],[3000,8],[10000,-3]] }, 'etymotic': { name: "Etymotic", points: [[20,-5],[100,-2],[1000,0],[3000,10],[10000,0]] } };
+        const EQ_PROFILES = { 'parametric': { name: "Parametric", type: "parametric" }, 'wavelet_import': { name: "Wavelet (Import)", type: "graphic_high_res", bands: [] }, 'wavelet_manual': { name: "Wavelet (Manual)", type: "graphic", bands: [62.5, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] }, '10_band': { name: "Standard 10-Band", type: "graphic", bands: [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] }, '31_band': { name: "Pro 31-Band", type: "graphic", bands: [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000] }, 'sony': { name: "Sony Headphones", type: "graphic", bands: [400, 1000, 2500, 6300, 16000] } };
+
+        // HELPER: Robust JSON Parsing
+        function parseAIResponse(text) {
+            text = text.trim();
+            text = text.replace(/```json/g, '').replace(/```/g, '');
+            try { return JSON.parse(text); } catch(e) {}
+            const startObj = text.indexOf('{');
+            const endObj = text.lastIndexOf('}');
+            if (startObj !== -1 && endObj !== -1) {
+                 try { return JSON.parse(text.substring(startObj, endObj + 1)); } catch(e) {}
+            }
+            throw new Error("AI Response Invalid Format");
+        }
+
+        function cleanName(str) { if(!str) return ""; return str.replace(/\s*\(AI\)/gi, '').trim(); }
+
+        // --- EXPORT FUNCTIONS ---
+        window.openSoundCheck = () => { document.getElementById('soundCheckModal').classList.remove('hidden'); };
+        window.closeSoundCheck = () => { document.getElementById('soundCheckModal').classList.add('hidden'); document.getElementById('audioPreview').pause(); };
+        window.closeOnOutsideClick = (event, id) => {
+            // If the user clicked on the overlay (the parent div), close it.
+            // The inner content has onclick="event.stopPropagation()" so clicks inside won't trigger this.
+            if (event.target.id === id) {
+                document.getElementById(id).classList.add('hidden');
+                if(id === 'soundCheckModal') document.getElementById('audioPreview').pause();
+            }
+        };
+        
+        window.searchSong = async () => {
+            const q = document.getElementById('songSearchInput').value;
+            if(!q) return;
+            const resDiv = document.getElementById('songResults');
+            resDiv.innerHTML = '<div class="text-gray-500 text-xs">Searching iTunes...</div>';
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=4`);
+                const data = await res.json();
+                resDiv.innerHTML = '';
+                if(data.results.length===0) { resDiv.innerHTML='<div class="text-gray-500 text-xs">No results.</div>'; return; }
+                data.results.forEach(track => {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center gap-3 bg-white/5 p-3 rounded-xl hover:bg-white/10 cursor-pointer transition border border-white/5";
+                    div.innerHTML = `<img src="${track.artworkUrl60}" class="w-12 h-12 rounded-lg"><div class="overflow-hidden"><div class="text-white text-sm font-bold truncate">${track.trackName}</div><div class="text-gray-500 text-xs truncate">${track.artistName}</div></div>`;
+                    div.onclick = () => playTrack(track);
+                    resDiv.appendChild(div);
+                });
+            } catch(e) { resDiv.innerHTML = `<div class="text-red-500 text-xs">Error: ${e.message}</div>`; }
+        };
+        window.playTrack = (track) => {
+            document.getElementById('playerSection').classList.remove('hidden');
+            document.getElementById('trackName').innerText = track.trackName;
+            document.getElementById('artistName').innerText = track.artistName;
+            document.getElementById('albumArt').src = track.artworkUrl100;
+            const audio = document.getElementById('audioPreview');
+            audio.src = track.previewUrl;
+            audio.play();
+            document.getElementById('eqSimToggle').checked = false;
+        };
+        window.toggleWebAudioEQ = async () => {
+            const toggle = document.getElementById('eqSimToggle');
+            const audio = document.getElementById('audioPreview');
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (!webAudioSource) webAudioSource = audioCtx.createMediaElementSource(audio);
+            webAudioSource.disconnect(); filterNodes.forEach(f => f.disconnect()); filterNodes = [];
+            if (toggle.checked && currentIEM && currentIEM.filters) {
+                let lastNode = webAudioSource;
+                currentIEM.filters.forEach(f => {
+                    const filter = audioCtx.createBiquadFilter();
+                    if (f.type.includes('Peak')) filter.type = 'peaking'; else if (f.type.includes('Low')) filter.type = 'lowshelf'; else filter.type = 'highshelf';
+                    filter.frequency.value = f.freq; filter.gain.value = f.gain; filter.Q.value = f.q;
+                    lastNode.connect(filter); lastNode = filter; filterNodes.push(filter);
+                });
+                lastNode.connect(audioCtx.destination);
+            } else { webAudioSource.connect(audioCtx.destination); }
+        };
+
+        // --- DROPDOWN LOGIC ---
+        window.toggleTargetMenu = () => { const m = document.getElementById('targetMenu'); m.classList.toggle('dropdown-active'); m.classList.toggle('dropdown-enter'); };
+        window.toggleExportMenu = () => { const m = document.getElementById('exportMenu'); m.classList.toggle('dropdown-active'); m.classList.toggle('dropdown-enter'); };
+        document.addEventListener('click', (e) => {
+            const tm = document.getElementById('targetMenu'); const tb = document.querySelector('button[onclick="toggleTargetMenu()"]');
+            if (tm && !tm.contains(e.target) && tb && !tb.contains(e.target)) { tm.classList.remove('dropdown-active'); tm.classList.add('dropdown-enter'); }
+            const em = document.getElementById('exportMenu'); const eb = document.querySelector('button[onclick="toggleExportMenu()"]');
+            if (em && !em.contains(e.target) && eb && !eb.contains(e.target)) { em.classList.remove('dropdown-active'); em.classList.add('dropdown-enter'); }
+        });
+
+        window.selectTarget = (val, label) => { document.getElementById('targetLabel').innerText = label; document.getElementById('targetLabel').dataset.val = val; window.toggleTargetMenu(); changeTarget(val); };
+        window.selectExportProfile = (val, label, iconClass) => {
+            document.getElementById('exportLabel').innerText = label;
+            document.getElementById('exportIcon').innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+            window.toggleExportMenu();
+            document.querySelector('button[onclick="toggleExportMenu()"]').dataset.val = val;
+            renderProfileView(); 
+        };
+
+        // --- INIT ---
+        window.saveConfig = () => {
+            try {
+                let input = document.getElementById('configInput').value.trim();
+                if(input.includes('=')) input = input.split('=')[1].trim();
+                if(input.endsWith(';')) input = input.slice(0, -1).trim();
+                input = input.replace(/([{,]\s*)([a-zA-Z0-9_$]+)\s*:/g, '$1"$2":').replace(/:\s*'([^']+)'/g, ': "$1"').replace(/,\s*}/g, '}');
+                const parsed = JSON.parse(input);
+                if(!parsed.apiKey) throw new Error("Missing apiKey");
+                localStorage.setItem('fb_cfg', JSON.stringify(parsed));
+                localStorage.setItem('gemini_key', document.getElementById('geminiKeyInput').value);
+                window.location.reload();
+            } catch(e) { document.getElementById('configError').innerText = e.message; document.getElementById('configError').classList.remove('hidden'); }
+        };
+        window.clearConfig = () => { if(confirm("Reset?")) { localStorage.clear(); window.location.reload(); }};
+        async function initApp() {
+            const cfg = localStorage.getItem('fb_cfg'); geminiKey = localStorage.getItem('gemini_key');
+            if(!cfg) { document.getElementById('configModal').classList.remove('hidden'); return; }
+            try {
+                const app = initializeApp(JSON.parse(cfg)); db = getFirestore(app); auth = getAuth(app);
+                document.getElementById('adminBtn').classList.remove('hidden');
+                await signInAnonymously(auth); loadIEMList();
+            } catch(e) { 
+                console.error("Firebase Error:", e);
+                document.getElementById('configModal').classList.remove('hidden'); 
+                document.getElementById('configError').innerText = "Connection Failed. Check Console.";
+            }
+        }
+        initApp();
+
+        // --- DATA ---
+        async function loadIEMList() {
+            if(!db) return;
+            try {
+                const s = await getDocs(collection(db, 'artifacts', 'audiophile-eq', 'public', 'data', 'iems'));
+                allIEMs = []; s.forEach(d => { let o = d.data(); o.name = cleanName(o.name); allIEMs.push(o); });
+                allIEMs.sort((a,b)=>a.name.localeCompare(b.name));
+            } catch(e) { console.error(e); }
+        }
+        const searchInput = document.getElementById('searchInput');
+        const resultsBox = document.getElementById('searchResults');
+        
+        function executeSearch(q) {
+            q = q.toLowerCase();
+            if(q.length < 1) { resultsBox.classList.add('hidden'); return; }
+            resultsBox.innerHTML = '';
+            const f = allIEMs.filter(i => i.name.toLowerCase().includes(q));
+            f.forEach(i => {
+                const d = document.createElement('div'); d.className = "px-6 py-4 hover:bg-white/5 cursor-pointer transition text-lg text-gray-200 font-medium flex justify-between items-center group border-b border-white/5 last:border-0"; 
+                d.innerHTML = `<span>${cleanName(i.name)}</span><i class="fa-solid fa-chevron-right text-sm text-gray-600 group-hover:text-blue-400 transition"></i>`; d.onclick = () => selectIEM(i); resultsBox.appendChild(d);
+            });
+            const aiDiv = document.createElement('div'); aiDiv.className="px-6 py-5 hover:bg-blue-500/10 cursor-pointer text-md flex items-center gap-4 text-blue-300 border-t border-white/10"; aiDiv.innerHTML=`<i class="fa-solid fa-cloud-arrow-down text-xl"></i> Use AI to fetch "${q}"`; aiDiv.onclick = () => fetchIEMViaAI(q); resultsBox.appendChild(aiDiv);
+            resultsBox.classList.remove('hidden');
+        }
+
+        searchInput.addEventListener('input', (e) => executeSearch(e.target.value));
+        searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { const q = e.target.value.toLowerCase(); const f = allIEMs.find(i => i.name.toLowerCase().includes(q)); if(f) selectIEM(f); else fetchIEMViaAI(q); } });
+        document.addEventListener('click', e => { if(!searchInput.contains(e.target)) resultsBox.classList.add('hidden'); });
+
+        // --- MAIN UI ---
+        function selectIEM(iem) {
+            // SELF-HEALING LOGIC
+            if (!iem.specs || !iem.specs.impedance) {
+                iem.specs = { impedance: "Fetching...", sensitivity: "...", driver: "..." };
+                currentIEM = JSON.parse(JSON.stringify(iem));
+                updateUI(currentIEM);
+                fetchIEMViaAI(iem.name); // Trigger Repair
+                return;
+            }
+            currentIEM = JSON.parse(JSON.stringify(iem)); currentIEM.name = cleanName(currentIEM.name);
+            updateUI(currentIEM);
+        }
+
+        function updateUI(iem) {
+            resultsBox.classList.add('hidden'); searchInput.value = iem.name;
+            document.getElementById('dashboard').classList.remove('hidden');
+            setTimeout(()=>{document.getElementById('dashboard').scrollIntoView({behavior: 'smooth'});}, 100);
+            document.getElementById('iemName').innerText = iem.name; document.getElementById('iemName').title = iem.name;
+            document.getElementById('preampGain').innerText = (iem.preamp > 0 ? "+" : "") + iem.preamp + " dB";
+            
+            document.getElementById('specImpedance').innerText = iem.specs?.impedance || "--";
+            document.getElementById('specSens').innerText = iem.specs?.sensitivity || "--";
+            document.getElementById('specDriver').innerText = iem.specs?.driver || "--";
+
+            updateDeviceTypeBar(iem);
+
+            updateChart(iem.filters); renderProfileView();
+        }
+
+        function updateDeviceTypeBar(iem) {
+            const badge = document.getElementById('deviceTypeBadge');
+            const icon = document.getElementById('deviceTypeIcon');
+            const text = document.getElementById('deviceTypeText');
+            
+            if (!iem.type) { badge.classList.add('hidden'); return; }
+
+            badge.classList.remove('hidden');
+            text.innerText = iem.type;
+            icon.className = "text-blue-400 text-xs fa-solid";
+            if (iem.type.includes('Headphone')) icon.classList.add('fa-headphones');
+            else if (iem.type.includes('TWS') || iem.type.includes('Earbud')) icon.classList.add('fa-bluetooth');
+            else if (iem.type.includes('Speaker')) icon.classList.add('fa-volume-high');
+            else icon.classList.add('fa-ear-listen');
+        }
+        
+        function getGainAtFreq(freq, filters) {
+            let db = 0; filters.forEach(filt => {
+                if(filt.type.includes('Peak')) { const diff = Math.abs(Math.log10(freq) - Math.log10(filt.freq)); db += filt.gain * Math.exp(-(diff * diff) / (0.1 / filt.q)); }
+                else if (filt.type.includes('Low')) { if(freq < filt.freq) db += filt.gain; } else if (filt.type.includes('High')) { if(freq > filt.freq) db += filt.gain; }
+            }); return db;
+        }
+        function getTargetY(freq, targetKey) {
+            const points = TARGET_DATA[targetKey || 'harman'].points;
+            for(let i=0; i<points.length-1; i++) {
+                if(freq >= points[i][0] && freq <= points[i+1][0]) { return points[i][1] + ((freq - points[i][0]) / (points[i+1][0] - points[i][0])) * (points[i+1][1] - points[i][1]); }
+            } return 0;
+        }
+        window.updateChart = (filters) => {
+            const ctx = document.getElementById('eqChart').getContext('2d');
+            const showTarget = document.getElementById('targetToggle').checked;
+            const targetKey = document.getElementById('targetLabel').dataset.val || 'harman';
+            const plotLabels = []; const data1 = []; const data2 = []; const dataTarget = [];
+            for(let f = 20; f <= 20000; f *= 1.15) {
+                const freq = Math.round(f); plotLabels.push(freq);
+                data1.push(getGainAtFreq(freq, filters));
+                if(competitorIEM) data2.push(getGainAtFreq(freq, competitorIEM.filters));
+                if(showTarget) dataTarget.push(getTargetY(freq, targetKey));
+            }
+            if(eqChart) eqChart.destroy();
+            const datasets = [{ label: currentIEM.name, data: data1, borderColor: '#3b82f6', borderWidth: 3, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.4, pointRadius: 0 }];
+            if(showTarget) datasets.unshift({ label: "Target", data: dataTarget, borderColor: '#6b7280', borderWidth: 2, borderDash:[5,5], fill: false, tension: 0.4, pointRadius: 0 });
+            if(competitorIEM) datasets.push({ label: competitorIEM.name, data: data2, borderColor: '#f97316', borderWidth: 2, borderDash: [5,5], fill: false, tension: 0.4, pointRadius: 0 });
+            eqChart = new Chart(ctx, { type: 'line', data: { labels: plotLabels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'logarithmic', grid: { color: '#222' }, ticks: { color:'#555', callback: v=>[100,1000,10000].includes(v)?v:'' } }, y: { grid:{color:'#222'}, suggestedMin: -10, suggestedMax: 10 } }, plugins: { legend: { display: !!competitorIEM || showTarget, labels:{color:'#ccc'} } } } });
+        }
+
+        // --- AI ---
+        async function callGemini(sys, usr, imgBase64 = null) {
+            if(!geminiKey) { alert("API Key Required"); throw new Error("No Key"); }
+            const parts = [{text: usr}]; if(imgBase64) parts.push({ inline_data: { mime_type: "image/png", data: imgBase64 } });
+
+            // UPDATED: Added Google Search Tool
+            const payload = {
+                contents: [{parts: parts}],
+                systemInstruction: {parts: [{text: sys}]},
+                tools: [{ google_search: {} }] // ENABLE WEB SEARCH
+            };
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`, { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify(payload) 
+            });
+            
+            const d = await res.json(); 
+            if(!res.ok) throw new Error(d.error?.message || "Error");
+            return d.candidates[0].content.parts[0].text;
+        }
+
+        window.changeTarget = async (val) => {
+            if(!currentIEM) return;
+            document.getElementById('aiStatusText').innerText = `Retuning...`;
+            document.getElementById('aiFetchModal').classList.remove('hidden');
+            try {
+                // CHANGED: Use Calculation Prompt instead of Search Prompt to avoid "I can't find this profile" text
+                const sys = `You are an expert DSP engineer.
+                Task: Mathematically recalculate the provided EQ filters to match a new Target Curve.
+                Input: Current Filters (Harman) -> Output: New Filters (Target: ${val}).
+                Method: Apply frequency offsets. Do NOT search for a file. CALCULATE IT.
+                Return: JSON Array ONLY.`;
+                
+                const usr = `Current: ${JSON.stringify(currentIEM.filters)}. Target: ${val}.`;
+                let txt = await callGemini(sys, usr);
+                
+                const f = parseAIResponse(txt); // Use Safe Parser
+                currentIEM.filters = f;
+                updateChart(f); document.getElementById('aiFetchModal').classList.add('hidden'); renderProfileView();
+            } catch(e) { document.getElementById('aiFetchModal').classList.add('hidden'); alert("Failed: " + e.message); }
+        };
+
+        // UPDATED AI FETCH LOGIC FOR SPECS & TYPE
+        window.fetchIEMViaAI = async (name) => {
+            if(!geminiKey) return alert("Key Req");
+            document.getElementById('aiFetchModal').classList.remove('hidden'); document.getElementById('searchResults').classList.add('hidden');
+            try {
+                // STRICT PROMPT + WEB SEARCH ENABLED
+                const sys = `You are an expert audio engineer database. 
+                Task: Provide technical specifications AND AutoEQ (Harman 2019) parametric EQ filters for the requested audio device.
+                
+                INSTRUCTIONS:
+                1. USE GOOGLE SEARCH to find the official specifications for the device "${name}".
+                2. Determine Device Type (In-Ear Monitor, Over-Ear Headphone, TWS).
+                3. Find exact Impedance, Sensitivity, and Driver Size (e.g. 40mm, 10mm).
+                4. If Over-Ear Headphone, Driver MUST be >30mm. Do not assign IEM specs.
+                5. Return ONLY valid JSON. No markdown blocks.
+
+                JSON Format: 
+                { 
+                    "name": "Exact Model Name", 
+                    "type": "In-Ear Monitor" | "Over-Ear Headphone" | "TWS Earbud",
+                    "preamp": -4.5, 
+                    "specs": { "impedance": "32Ω", "sensitivity": "108dB", "driver": "40mm Dynamic" }, 
+                    "filters": [{ "type": "Peak", "freq": 100, "gain": -2.0, "q": 0.7 }] 
+                }`;
+                
+                let txt = await callGemini(sys, `Model: ${name}`);
+                const d = parseAIResponse(txt);
+                
+                if(d.name) d.name = cleanName(d.name); 
+                d.id = d.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                
+                await setDoc(doc(db, 'artifacts', 'audiophile-eq', 'public', 'data', 'iems', d.id), d);
+                allIEMs.push(d); 
+                document.getElementById('aiFetchModal').classList.add('hidden'); 
+                currentIEM = d;
+                updateUI(d);
+            } catch(e) { alert(e.message); document.getElementById('aiFetchModal').classList.add('hidden'); }
+        };
+
+        window.setTunerPrompt = (txt) => { const el = document.getElementById('aiTunerPrompt'); el.value = txt; el.focus(); el.classList.add('bg-blue-500/20'); setTimeout(() => el.classList.remove('bg-blue-500/20'), 200); };
+        window.generateSmartEQ = async () => {
+            if(!currentIEM) return alert("Select IEM");
+            const prompt = document.getElementById('aiTunerPrompt').value; if(!prompt) return alert("Enter goal");
+            const btn = document.getElementById('tuneBtn'); const old = btn.innerHTML; btn.innerText = "Tuning..."; btn.disabled = true;
+            try {
+                const sys = `Audio DSP Engineer. Modify filters for user goal. JSON Array ONLY. Keep gain +/-12dB.`;
+                const usr = `Filters: ${JSON.stringify(currentIEM.filters)}. Goal: "${prompt}".`;
+                let raw = await callGemini(sys, usr);
+                currentIEM.filters = parseAIResponse(raw);
+                selectIEM(currentIEM); document.getElementById('aiTunerPrompt').value = "";
+            } catch(e) { alert("Error: " + e.message); } finally { btn.innerHTML = old; btn.disabled = false; }
+        };
+
+        // --- HEARING TEST (GOLDEN EARS) ---
+        window.openHearingTest = () => {
+            document.getElementById('hearingModal').classList.remove('hidden');
+            hearingStepIndex = 0;
+            updateHearingUI();
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        };
+        window.closeHearingModal = () => {
+            document.getElementById('hearingModal').classList.add('hidden');
+            if(osc) { osc.stop(); osc = null; }
+        };
+        window.updateHearingUI = () => { document.getElementById('testFreq').innerText = hearingFreqs[hearingStepIndex]; };
+        window.playTestTone = async () => {
+            if (osc) { try { osc.stop(); } catch(e) {} osc = null; }
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            osc = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = hearingFreqs[hearingStepIndex];
+            const sliderVal = document.getElementById('testVol').value;
+            gainNode.gain.value = Math.pow(sliderVal / 100, 3);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+            const stopTime = audioCtx.currentTime + 1;
+            gainNode.gain.exponentialRampToValueAtTime(0.001, stopTime);
+            osc.stop(stopTime);
+        };
+        window.nextHearingStep = () => {
+            const vol = document.getElementById('testVol').value;
+            hearingProfile[hearingFreqs[hearingStepIndex]] = (vol - 50) * 0.2;
+            hearingStepIndex++;
+            if(hearingStepIndex >= hearingFreqs.length) {
+                closeHearingModal();
+                alert("Hearing Profile Saved! Applied to future downloads.");
+            } else {
+                updateHearingUI();
+            }
+        };
+
+        // --- UTILS ---
+        window.openAddModal = () => document.getElementById('addModal').classList.remove('hidden');
+        window.closeAddModal = () => document.getElementById('addModal').classList.add('hidden');
+        window.switchAddTab = (t) => {
+            document.getElementById('manualInputSection').classList.toggle('hidden', t!=='manual');
+            document.getElementById('visionInputSection').classList.toggle('hidden', t!=='vision');
+            document.getElementById('tabManual').className = t==='manual' ? "px-6 py-3 text-blue-400 border-b-2 border-blue-400 font-bold text-sm" : "px-6 py-3 text-gray-500 font-bold text-sm";
+            document.getElementById('tabVision').className = t==='vision' ? "px-6 py-3 text-blue-400 border-b-2 border-blue-400 font-bold text-sm" : "px-6 py-3 text-gray-500 font-bold text-sm";
+        };
+        window.handleGraphUpload = (input) => {
+            if(input.files && input.files[0]) { const r = new FileReader(); r.onload = (e) => { document.getElementById('imgPreview').src = e.target.result; document.getElementById('visionPreview').classList.remove('hidden'); }; r.readAsDataURL(input.files[0]); }
+        };
+        window.processGraphImage = async () => {
+            const b64 = document.getElementById('imgPreview').src.split(',')[1]; const btn = document.getElementById('visionProcessBtn'); btn.innerText = "Analyzing...";
+            try {
+                const sys = "Vision Expert. Extract EQ filters from graph to Harman. JSON Only.";
+                const txt = await callGemini(sys, "Analyze", b64);
+                const filters = parseAIResponse(txt);
+                document.getElementById('customPaste').value = JSON.stringify(filters, null, 2);
+                alert("Filters extracted!"); window.switchAddTab('manual');
+            } catch(e) { alert("Error: " + e.message); } btn.innerText = "Analyze Curve";
+        };
+        window.parseAndSaveCustom = async () => {
+            const name = document.getElementById('customName').value; let text = document.getElementById('customPaste').value;
+            if(!name || !text) return alert("Req data");
+            let filters = [];
+            if(text.trim().startsWith('[')) filters = JSON.parse(text);
+            else text.split('\n').forEach(l => { const m = l.match(/Filter\s+\d+:\s+ON\s+([A-Za-z]+)\s+Fc\s+(\d+\.?\d*)\s+Hz\s+Gain\s+(-?\d+\.?\d*)\s+dB\s+Q\s+(\d+\.?\d*)/i); if(m) filters.push({type: m[1].includes('Low')?'LowShelf':(m[1].includes('High')?'HighShelf':'Peak'), freq: parseFloat(m[2]), gain: parseFloat(m[3]), q: parseFloat(m[4])}); });
+            const d = { id: name.toLowerCase().replace(/\s/g,'-'), name: cleanName(name), preamp: -3.0, filters, specs:{impedance:"32Ω",sensitivity:"108dB",driver:"User Custom"} };
+            await setDoc(doc(db, 'artifacts', 'audiophile-eq', 'public', 'data', 'iems', d.id), d); window.location.reload();
+        };
+        window.connectUSB = async () => { if(navigator.usb) { try { const dev = await navigator.usb.requestDevice({ filters: [] }); alert("Connected: " + dev.productName); } catch(e) { alert("USB: " + e.message); } } else alert("WebUSB not supported"); };
+        window.generateQR = () => { if(!currentIEM) return; document.getElementById('qrModal').classList.remove('hidden'); document.getElementById('qrcode').innerHTML = ""; let t = "GraphicEQ: "; [32,63,125,250,500,1000,2000,4000,8000,16000].forEach(b=>{ let db=getGainAtFreq(b, currentIEM.filters); t+=`${b}:${db.toFixed(1)}; `; }); new QRCode(document.getElementById("qrcode"), { text: t, width: 128, height: 128 }); };
+        window.downloadConfig = () => {
+            if(!currentIEM) return;
+            const btn = document.querySelector('button[onclick="toggleExportMenu()"]');
+            const pk = btn.dataset.val || 'parametric'; 
+            const useCrossfeed = document.getElementById('crossfeedToggle').checked;
+            let c = ""; let n = `${currentIEM.name}_${pk}`;
+            if(pk.includes('wavelet')) {
+                c = "GraphicEQ: ";
+                for(let f=20; f<=20000; f*=1.07) c += `${Math.round(f)}:${getGainAtFreq(Math.round(f), currentIEM.filters).toFixed(1)}; `;
+                n += ".txt";
+            } else {
+                c = `Preamp: ${currentIEM.preamp} dB\n`;
+                currentIEM.filters.forEach((f,i)=> c+=`Filter ${i+1}: ON ${f.type.substring(0,2).toUpperCase()} Fc ${f.freq} Hz Gain ${f.gain} dB Q ${f.q}\n`);
+                if(useCrossfeed) c += "\n# Jan Meier Crossfeed\nCopy: L=L R=R\nChannel: L\nFilter: ON LP Fc 650 Hz\nChannel: R\nFilter: ON LP Fc 650 Hz\n";
+                n += ".txt";
+            }
+            const b = new Blob([c], {type:'text/plain'}); const u = URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=n; a.click();
+        };
+        window.renderProfileView = () => { 
+            if(!currentIEM) return;
+            const btn = document.querySelector('button[onclick="toggleExportMenu()"]');
+            const pk = btn.dataset.val || 'parametric';
+            const div = document.getElementById('dataContainer'); div.innerHTML = '';
+            if(pk==='parametric') {
+                // NEW CARD UI FOR FILTERS
+                currentIEM.filters.forEach(f => {
+                    div.innerHTML += `
+                        <div class="flex justify-between items-center p-3 mb-2 bg-white/5 border border-white/5 rounded-lg hover:bg-white/10 hover:border-blue-500/30 transition-all group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 flex items-center justify-center rounded bg-black/50 text-[10px] font-bold text-gray-400 border border-white/5 group-hover:text-white group-hover:border-blue-500/50 transition">${f.type.substring(0,2).toUpperCase()}</div>
+                                <span class="text-sm font-mono text-cyan-400 font-bold tracking-wide">${f.freq}<span class="text-[10px] text-gray-600 ml-0.5">Hz</span></span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="font-mono font-bold text-sm ${f.gain >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${f.gain > 0 ? '+' : ''}${f.gain}<span class="text-[10px] text-gray-600 ml-0.5">dB</span></span>
+                                <span class="text-xs text-gray-500 font-mono">Q: ${f.q}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('viewCount').innerText = currentIEM.filters.length + " Bands";
+            } else {
+                const prof = EQ_PROFILES[pk];
+                if(prof && prof.bands.length > 0) {
+                    prof.bands.forEach(b => {
+                        let gain = getGainAtFreq(b, currentIEM.filters).toFixed(1);
+                        div.innerHTML += `
+                            <div class="flex justify-between items-center p-2 mb-1 border-b border-white/5 hover:bg-white/5 transition">
+                                <span class="text-xs font-bold text-gray-400">${b}Hz</span>
+                                <span class="text-xs font-mono font-bold ${gain >= 0 ? 'text-blue-400' : 'text-orange-400'}">${gain}dB</span>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('viewCount').innerText = prof.bands.length + " Bands";
+                } else { div.innerHTML = "<div class='text-center text-gray-500 p-8 font-bold text-xs tracking-widest uppercase'>High Res Mode (127 Bands)</div>"; document.getElementById('viewCount').innerText = "127 Bands"; }
+            }
+        };
+        window.analyzeSound = async () => { 
+            if(!currentIEM) return;
+            const resBox = document.getElementById('aiAnalysisResult'); document.getElementById('analyzeBtn').innerText = "Thinking...";
+            try {
+                const text = await callGemini("Expert audiophile. Describe sound signature concisely.", "Filters: " + JSON.stringify(currentIEM.filters));
+                resBox.innerHTML = marked.parse(text); resBox.classList.remove('italic');
+            } catch(e) { resBox.innerText = "Error: " + e.message; } document.getElementById('analyzeBtn').innerHTML = `<i class="fa-solid fa-microchip"></i> Analyze`;
+        };
+        window.toggleAdminPanel = () => document.getElementById('adminPanel').classList.toggle('hidden');
+        window.seedDatabase = async () => {
+             document.getElementById('seedStatus').innerText = "Seeding...";
+             const seed = [
+                 {id:"moondrop-aria", name:"Moondrop Aria", preamp:-4.2, filters:[{type:"Peak",freq:80,gain:-2.0,q:0.7},{type:"Peak",freq:3000,gain:3.0,q:1.4}], specs:{impedance:"32Ω",sensitivity:"122dB",driver:"1DD"}},
+                 {id:"sennheiser-hd600", name:"Sennheiser HD 600", preamp:-5.0, filters:[{type:"LowShelf",freq:100,gain:5.0,q:0.7},{type:"Peak",freq:3500,gain:-2.5,q:2.0}], specs:{impedance:"300Ω",sensitivity:"97dB",driver:"Dynamic"}}
+             ];
+             for(const s of seed) await setDoc(doc(db,'artifacts','audiophile-eq','public','data','iems',s.id), s);
+             window.location.reload();
+        };
+    </script>
+</body>
+</html>
